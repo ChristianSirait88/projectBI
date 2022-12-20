@@ -1,0 +1,85 @@
+---
+title: "Untitled"
+author: "Christian Sirait"
+date: "2022-12-08"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(dslabs)
+library(janitor)
+library(stringr)
+library(leaflet)
+library(htmlwidgets)
+library(tidyverse)
+library(dplyr)
+library(here)
+library(vroom)
+library(tidyverse)
+library(hablar)
+library(dbscan)
+library(factoextra)
+library(cluster)
+library(leaflet)
+library(ggthemes)
+library(fishualize)
+library(tidyr)
+```
+
+```{r}
+getwd()
+murder <- vroom(here("Crime_Data_from_2020_to_Present.csv"))
+murder
+```
+
+```{r}
+murder <-clean_names(murder)
+colnames(murder)
+murder <- subset(murder, !is.na(murder$cross_street))
+murder
+```
+
+```{r}
+murder
+```
+
+```{r}
+murder<- murder %>% mutate_if(is.character, ~replace_na(.,"DATA NOT REPORTED"))%>% mutate_if(is.double, ~replace_na(.,0)) 
+murder <- murder %>% select (-crm_cd_3,-crm_cd_4,-area)
+murder
+```
+
+```{r}
+lln = min(murder$lon)
+uln = max(murder$lon)
+llat = min(murder$lat)
+ulat = max(murder$lat)
+
+centlat = (llat+ulat)/2
+centlon = (lln+uln)/2
+sbt = murder
+mp = leaflet(sbt) %>%
+  setView(centlon,centlat,zoom = 4) %>%
+  addProviderTiles("OpenStreetMap") %>%
+  addCircleMarkers(lng = sbt$lon,
+                   lat = sbt$lat,
+                   popup = sbt$area_name,
+                   fillColor = "Black",
+                   fillOpacity = 1,
+                   radius = 4,
+                   stroke = F)
+mp
+```
+
+```{r}
+locs=select(murder,lat,lon)
+locs.scaled = scale(locs,center = T,scale = T)
+
+head(locs.scaled)
+db = dbscan(locs.scaled,eps=0.15,minPts = 12)
+db
+```
