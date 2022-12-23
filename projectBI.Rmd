@@ -1,0 +1,127 @@
+<<<<<<< HEAD
+---
+title: "Untitled"
+author: "Christian Sirait"
+date: "2022-12-08"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(dslabs)
+library(janitor)
+library(stringr)
+library(leaflet)
+library(htmlwidgets)
+library(tidyverse)
+library(dplyr)
+library(here)
+library(vroom)
+library(tidyverse)
+library(hablar)
+library(dbscan)
+library(factoextra)
+library(cluster)
+library(leaflet)
+library(ggthemes)
+library(fishualize)
+library(fpc)
+library(tidyr)
+```
+
+```{r}
+getwd()
+murder <- vroom(here("Crime_Data_from_2020_to_Present.csv"))
+murder
+```
+
+```{r}
+murder <-clean_names(murder)
+colnames(murder)
+murder <- subset(murder, !is.na(murder$weapon_desc))
+murder <- subset(murder, !is.na(murder$crm_cd_2))
+murder
+```
+
+```{r}
+murder
+```
+
+```{r}
+murder<- murder %>% mutate_if(is.character, ~replace_na(.,"DATA NOT REPORTED"))%>% mutate_if(is.double, ~replace_na(.,0)) 
+murder <- murder %>% select (-crm_cd_3,-crm_cd_4,-area)
+murder
+```
+
+```{r}
+lln = min(murder$lon)
+uln = max(murder$lon)
+llat = min(murder$lat)
+ulat = max(murder$lat)
+
+centlon = (lln+uln)/2
+centlat = (llat+ulat)/2
+
+leaflet(data = murder) %>% 
+  addTiles() %>% 
+  setView(lng = -118.243683,lat = 34.052235,zoom =  10) %>% 
+  addCircleMarkers(lng = ~murder$lon, 
+                   lat = ~murder$lat, 
+                   radius =1)
+```
+
+```{r}
+locs=select(murder,lat,lon)
+locs.scaled = scale(locs,center = T,scale = T)
+
+head(locs.scaled)
+```
+```{r}
+kNNdistplot(murder[,24:25], k = 8)
+abline(h= 0.007, col = "red", lty = 3)
+```
+
+```{r}
+mur <- dbscan(murder[,24:25], eps = 0.007, MinPts = 8)
+mur
+```
+
+```{r}
+murder <- murder %>% 
+  mutate(clust = mur$cluster)
+
+# membuat pallet color untuk setiap cluster
+pallet <- fishualize::fish(n = length(unique(murder$clust)), option = "Bryaninops_natans")
+pal <- colorFactor(pallet, domain = unique(murder$clust))
+
+# visualisasi cluser tanpa data noise
+leaflet(data = murder[murder$clust !=0,]) %>% 
+  addTiles() %>% 
+  setView(lng = -118.243683,lat = 34.052235,zoom =  10) %>% 
+  addCircleMarkers(lng = ~murder$lon, 
+                   lat = ~murder$lat, 
+                   radius =1,
+                   color = ~pal(murder$clust))
+
+```
+
+
+
+```{r}
+set.seed(2)
+trainIndex = sample(nrow(locs.scaled),size = round(0.8*nrow(locs)))
+X_train = locs.scaled[trainIndex,]
+y_train = locs.scaled[-trainIndex,]
+
+#model application
+dbsc = dbscan(X_train,eps = 0.15,MinPts  = 12)
+
+# Cluster prediction
+
+preds = predict.dbscan(object = dbsc,
+               data = X_train,newdata = y_train,
+                )
+```
