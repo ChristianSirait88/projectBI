@@ -205,13 +205,3 @@ mp = leaflet(sbt) %>%
                    stroke = F)
 mp
 ```
-
-```{r}
-locs=select(murder,lat,lon)
-locs.scaled = scale(locs,center = T,scale = T)
-
-head(locs.scaled)
-db = dbscan(locs.scaled,eps=0.15,minPts = 12)
-db
->>>>>>> 6e42c0a0ff0f07209e3162469d507c4e37500297
-```
